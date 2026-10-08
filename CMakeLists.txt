@@ -57,6 +57,9 @@ endif()
 set_target_properties(upse PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_link_libraries(upse PRIVATE ZLIB::ZLIB)
+if(ANDROID)
+    target_link_libraries(upse PRIVATE log)
+endif()
 
 install(TARGETS upse
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -21,7 +21,13 @@
 #define _ENTER _DEBUG("enter")
 #define _LEAVE _DEBUG("leave")
 
-#ifndef _MSC_VER
+#if defined(__ANDROID__)
+
+#include <android/log.h>
+#define _MESSAGE(tag, string, ...) do { __android_log_print(ANDROID_LOG_ERROR, "SiliconPlayer", \
+    "[libupse] %s: %s:%d: " string, tag, __FILE__, __LINE__, ##__VA_ARGS__); } while(0)
+
+#elif !defined(_MSC_VER)
 
 #define _MESSAGE(tag, string, ...) do { fprintf(stderr, "libupse: %s: %s:%d (%s): " string "\n", \
     tag, __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__); } while(0)

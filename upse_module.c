@@ -102,6 +102,11 @@ upse_module_open(const char *file, const upse_iofuncs_t *funcs)
 
     if (!functor)
     {
+        char magic[5] = {0};
+        funcs->seek_impl(fileptr, 0, SEEK_SET);
+        funcs->read_impl(magic, 4, 1, fileptr);
+        _ERROR("no loader for magic %02x%02x%02x%02x", magic[0] & 0xff, magic[1] & 0xff,
+               magic[2] & 0xff, magic[3] & 0xff);
         funcs->close_impl(fileptr);
         return NULL;
     }
