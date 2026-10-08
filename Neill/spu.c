@@ -138,6 +138,18 @@ void EMU_CALL spu_enable_main(void *state, uint8 enable) {
   SPUSTATE->global_main_on = enable;
 }
 
+void EMU_CALL spu_set_scope_callback(void *state, spucore_scope_cb_t callback, void *user) {
+  spucore_set_scope_callback(CORESTATE(0), callback, user);
+}
+
+void EMU_CALL spu_set_voice_mute(void *state, int voice, int muted) {
+  spucore_set_voice_mute(CORESTATE(0), voice, muted);
+}
+
+void EMU_CALL spu_clear_voice_mutes(void *state) {
+  spucore_clear_voice_mutes(CORESTATE(0));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /*
 ** Hardware register load/store

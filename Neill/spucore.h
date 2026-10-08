@@ -30,6 +30,15 @@ void   EMU_CALL spucore_setflag     (void *state, uint32 n, int value);
 
 uint32 EMU_CALL spucore_cycles_until_interrupt(void *state, uint16 *ram, uint32 samples);
 
+/* Per-voice scope tap: when set, spucore_render reports each voice's
+** post-volume mono contribution through the callback. A null samples
+** pointer is never passed; silent quanta arrive as zeroes. */
+typedef void (EMU_CALL *spucore_scope_cb_t)(int voice, const sint16 *samples, int frames, void *user);
+void   EMU_CALL spucore_set_scope_callback(void *state, spucore_scope_cb_t callback, void *user);
+/* Channel mutes for scope isolation; inaudible voices still tap silence. */
+void   EMU_CALL spucore_set_voice_mute(void *state, int voice, int muted);
+void   EMU_CALL spucore_clear_voice_mutes(void *state);
+
 /*
 ** Register definitions
 */

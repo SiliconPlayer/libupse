@@ -469,6 +469,9 @@ struct SPUCORE_STATE {
   sint32 noiseval;
   uint32 irq_decoder_clock;
   uint32 irq_triggered_cycle;
+  spucore_scope_cb_t scopeCallback;
+  void *scopeCallbackUser;
+  uint32 scopeVoiceMute;
 };
 
 struct SPUCORE_IRQ_STATE {
@@ -1807,18 +1810,41 @@ static void EMU_CALL render(struct SPUCORE_STATE *state, uint16 *ram, sint16 *bu
     sint32 *b = buf ? ibuf : NULL;
     sint32 *fm = (chanbit & maskfm) ? ibuffm : NULL;
     sint32 *noise = (chanbit & masknoise) ? ibufn : NULL;
+    if((state->scopeVoiceMute >> ch) & 1) {
+      main_l = main_r = verb_l = verb_r = 0;
+    }
     if(!(main_l | main_r | verb_l | verb_r)) b = NULL;
     r = render_channel_mono(
       ram, state->memsize, state->chan + ch, b, fm, noise, samples, irq_state_ptr
     );
+    v_l = volume_getlevel(state->chan[ch].vol+0);
+    v_r = volume_getlevel(state->chan[ch].vol+1);
+    if(state->scopeCallback) {
+      sint16 tapMono[RENDERMAX];
+      /* Always report the full chunk so tap streams interleave exactly
+      ** like the mix; voices that rendered short tap silence. */
+      int tapFrames = samples < RENDERMAX ? samples : RENDERMAX;
+      if(b) {
+        int tapLive = r < tapFrames ? r : tapFrames;
+        int j;
+        for(j = 0; j < tapLive; j++) {
+          sint64 q = ((sint64) v_l * ibuf[j] + (sint64) v_r * ibuf[j]) >> 17;
+          if(q > 32767) q = 32767;
+          else if(q < -32767) q = -32767;
+          tapMono[j] = (sint16) q;
+        }
+        memset(tapMono + tapLive, 0, sizeof(sint16) * (tapFrames - tapLive));
+      } else {
+        memset(tapMono, 0, sizeof(sint16) * tapFrames);
+      }
+      if(tapFrames > 0) state->scopeCallback(ch, tapMono, tapFrames, state->scopeCallbackUser);
+    }
     if(!b) {
       memset(ibuffm, 0, 4 * samples);
       continue;
     }
     memcpy(ibuffm, ibuf, 4 * r);
     if(r < samples) memset(ibuffm + r, 0, 4 * (samples-r));
-    v_l = volume_getlevel(state->chan[ch].vol+0);
-    v_r = volume_getlevel(state->chan[ch].vol+1);
     for(i = 0; i < r; i++) {
       sint32 q_l = (v_l * ibuf[i]) >> 16;
       sint32 q_r = (v_r * ibuf[i]) >> 16;
@@ -2182,6 +2208,8 @@ uint32 EMU_CALL spucore_cycles_until_interrupt(void *state, uint16 *ram, uint32 
   if (!backup) return 0xFFFFFFFF;
   memcpy(backup, state, spucore_get_state_size());
   state = backup;
+  /* Speculative IRQ render: never report scope taps from it. */
+  SPUCORESTATE->scopeCallback = NULL;
   SPUCORESTATE->irq_triggered_cycle = 0xFFFFFFFF;
   r = 0;
   while(samples > RENDERMAX) {
@@ -2194,6 +2222,25 @@ uint32 EMU_CALL spucore_cycles_until_interrupt(void *state, uint16 *ram, uint32 
   r = (SPUCORESTATE->irq_triggered_cycle == 0xFFFFFFFF) ? 0xFFFFFFFF : SPUCORESTATE->irq_triggered_cycle + r;
   free(backup);
   return r;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/*
+** Channel scope tap
+*/
+void EMU_CALL spucore_set_scope_callback(void *state, spucore_scope_cb_t callback, void *user) {
+  SPUCORESTATE->scopeCallback = callback;
+  SPUCORESTATE->scopeCallbackUser = user;
+}
+
+void EMU_CALL spucore_set_voice_mute(void *state, int voice, int muted) {
+  if(voice < 0 || voice > 23) return;
+  if(muted) SPUCORESTATE->scopeVoiceMute |= (1u << voice);
+  else SPUCORESTATE->scopeVoiceMute &= ~(1u << voice);
+}
+
+void EMU_CALL spucore_clear_voice_mutes(void *state) {
+  SPUCORESTATE->scopeVoiceMute = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

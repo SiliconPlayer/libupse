@@ -8,6 +8,7 @@
 #define __PSX_SPU_H__
 
 #include "emuconfig.h"
+#include "spucore.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,13 @@ uint32 EMU_CALL spu_cycles_until_interrupt(void *state, uint32 samples);
 */
 void EMU_CALL spu_enable_main(void *state, uint8 enable);
 void EMU_CALL spu_enable_reverb(void *state, uint8 enable);
+
+/*
+** Per-voice scope tap and mutes; routed to core 0 (PS1 SPU).
+*/
+void EMU_CALL spu_set_scope_callback(void *state, spucore_scope_cb_t callback, void *user);
+void EMU_CALL spu_set_voice_mute(void *state, int voice, int muted);
+void EMU_CALL spu_clear_voice_mutes(void *state);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,7 @@
 
 #include "Neill/spu.h"
 #include "Neill/spucore.h"
+#include "upse-scope-tap.h"
 
 ////////////////////////////////////////////////////////////////////////
 // MAIN SPU FUNCTION
@@ -251,6 +252,39 @@ upse_ps1_spu_open(upse_module_instance_t *ins)
     upse_spu_lowpass_filter_redesign(spu, 44100);
 
     return spu;
+}
+
+void
+upse_ps1_spu_set_scope_callback(void *spuState, upse_spu_scope_cb_t callback, void *user)
+{
+    upse_spu_state_t *spu = (upse_spu_state_t *) spuState;
+
+    if (spu == NULL)
+	return;
+
+    spu_set_scope_callback(spu->pCore, (spucore_scope_cb_t) callback, user);
+}
+
+void
+upse_ps1_spu_set_voice_mute(void *spuState, int voice, int muted)
+{
+    upse_spu_state_t *spu = (upse_spu_state_t *) spuState;
+
+    if (spu == NULL)
+	return;
+
+    spu_set_voice_mute(spu->pCore, voice, muted);
+}
+
+void
+upse_ps1_spu_clear_voice_mutes(void *spuState)
+{
+    upse_spu_state_t *spu = (upse_spu_state_t *) spuState;
+
+    if (spu == NULL)
+	return;
+
+    spu_clear_voice_mutes(spu->pCore);
 }
 
 void
