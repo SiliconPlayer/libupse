@@ -67,6 +67,9 @@ void upse_ps1_reset(upse_module_instance_t *ins, upse_psx_revision_t rev)
 
 void upse_ps1_shutdown(upse_module_instance_t *ins)
 {
+    if (ins->spu == NULL)
+        return;
+
     upse_ps1_memory_shutdown(ins);
     upse_ps1_bios_shutdown(ins);
 
