@@ -104,9 +104,10 @@ upse_loader_prepare_table(void)
     upse_loader_list_t *iter;
     int count, elems;
 
-    /* count and allocate the amount of loaders in the table. */
-    for (elems = 1, iter = loader_list_; iter != NULL; elems++, iter = iter->next);
-    table = (upse_loader_t *) calloc(sizeof(upse_loader_t), elems);
+    /* count and allocate the amount of loaders in the table, plus a
+    ** zeroed sentinel for the probe loop. */
+    for (elems = 0, iter = loader_list_; iter != NULL; elems++, iter = iter->next);
+    table = (upse_loader_t *) calloc(sizeof(upse_loader_t), elems + 1);
 
     /* ... and populate it. */
     for (iter = loader_list_, count = 0; iter != NULL; count++, iter = iter->next)
@@ -117,7 +118,8 @@ upse_loader_prepare_table(void)
         table[count].func   = iter->func;
     }
 
-    /* optimize table to reduce seek(2) calls by ordering sequentially by offset */
+    /* sort only the populated entries; qsort is not stable, so the
+    ** sentinel must be excluded to keep it last. */
     qsort(table, elems, sizeof(upse_loader_t), upse_loader_compare_offset);
     return table;
 }
